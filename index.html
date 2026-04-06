@@ -69,25 +69,21 @@
             
             <div class="space-y-4">
                 <input type="text" id="in-name" placeholder="Name" class="w-full p-4 rounded-2xl bg-gray-100 border-none outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                
                 <div class="flex gap-4">
                     <input type="number" id="in-val" placeholder="Investiert €" class="flex-[2] p-4 rounded-2xl bg-gray-100 border-none outline-none focus:ring-2 focus:ring-blue-500 transition-all">
                     <div id="yield-container" class="flex-1">
                         <input type="number" id="in-yield" placeholder="Rendite %" class="w-full p-4 rounded-2xl bg-blue-50 text-blue-700 font-bold border-none outline-none focus:ring-2 focus:ring-blue-500 transition-all">
                     </div>
                 </div>
-                
                 <div class="flex gap-2 p-1 bg-gray-100 rounded-2xl">
                     <button onclick="setMode('p')" id="m-p" class="flex-1 py-3 rounded-xl bg-green-500 text-white font-bold transition-all">Plus</button>
                     <button onclick="setMode('m')" id="m-m" class="flex-1 py-3 rounded-xl text-gray-400 font-bold transition-all">Minus</button>
                 </div>
-
                 <div id="repeat-container" class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
                     <span class="text-sm font-semibold text-gray-600">Monatlich wiederholen</span>
                     <input type="checkbox" id="in-repeat" class="w-6 h-6 rounded-full text-blue-600 border-none bg-gray-200">
                 </div>
             </div>
-            
             <button onclick="save()" class="w-full mt-8 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition-all">Speichern</button>
         </div>
     </div>
@@ -96,14 +92,12 @@
         let currentTab = 'wealth'; 
         let entryMode = 'p';
         let editingId = null;
-        
         let transactions = JSON.parse(localStorage.getItem('ifinance_v4')) || [];
         let chart;
 
         const months = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
         const monthSelect = document.getElementById('month-select');
         const now = new Date();
-        
         for(let i=0; i<12; i++) {
             let opt = document.createElement('option'); opt.value = i;
             opt.text = months[i] + " " + now.getFullYear();
@@ -128,42 +122,30 @@
             const selMonth = parseInt(monthSelect.value);
             const list = document.getElementById('item-list');
             list.innerHTML = '';
-            
-            let filtered = currentTab === 'wealth' 
-                ? transactions.filter(t => t.tab === 'wealth')
-                : transactions.filter(t => t.tab === currentTab && t.month === selMonth);
-
-            let totalDisplayValue = 0;
+            let filtered = currentTab === 'wealth' ? transactions.filter(t => t.tab === 'wealth') : transactions.filter(t => t.tab === currentTab && t.month === selMonth);
+            let totalValue = 0;
 
             filtered.forEach((t) => {
-                let displayVal = t.val;
-                let subContent = '';
-
-                if(currentTab === 'wealth' && t.yield !== undefined && t.yield !== 0) {
-                    const profitLoss = t.val * (t.yield / 100);
-                    displayVal = t.val + profitLoss;
-                    const isNeg = t.yield < 0;
-                    subContent = `<p class="text-[10px] text-gray-400 font-medium">Invest: ${t.val.toLocaleString('de-DE')} € | <span class="${isNeg ? 'text-red-500' : 'text-green-500'} font-bold">${isNeg ? '' : '+'}${profitLoss.toLocaleString('de-DE')} € (${t.yield}%)</span></p>`;
+                let currentItemValue = t.val;
+                let subHtml = '';
+                if(currentTab === 'wealth' && t.yield !== undefined) {
+                    let profit = t.val * (t.yield / 100);
+                    currentItemValue = t.val + profit;
+                    let isNeg = t.yield < 0;
+                    subHtml = `<p class="text-[10px] text-gray-400">Invest: ${t.val.toLocaleString('de-DE')} € | <span class="${isNeg ? 'text-red-500' : 'text-green-500'} font-bold">${isNeg ? '' : '+'}${profit.toLocaleString('de-DE')} € (${t.yield}%)</span></p>`;
                 }
-
-                totalDisplayValue += displayVal;
-
-                list.innerHTML += `
-                <div class="bg-white p-5 rounded-2xl flex justify-between items-center shadow-sm border border-gray-50 active:bg-gray-50 transition-all" onclick="editEntry('${t.id || transactions.indexOf(t)}')">
+                totalValue += currentItemValue;
+                list.innerHTML += `<div class="bg-white p-5 rounded-2xl flex justify-between items-center shadow-sm border border-gray-50 active:bg-gray-50 transition-all" onclick="editEntry('${t.id || transactions.indexOf(t)}')">
                     <div class="flex items-center gap-3">
-                        <div class="w-1.5 h-6 rounded-full ${displayVal >= 0 ? 'bg-green-500' : 'bg-red-500'}"></div>
-                        <div>
-                            <p class="font-bold tracking-tight">${t.name} ${t.repeat ? ' ↻' : ''}</p>
-                            ${subContent}
-                        </div>
+                        <div class="w-1.5 h-6 rounded-full ${currentItemValue >= 0 ? 'bg-green-500' : 'bg-red-500'}"></div>
+                        <div><p class="font-bold tracking-tight">${t.name} ${t.repeat ? ' ↻' : ''}</p>${subHtml}</div>
                     </div>
-                    <span class="font-bold text-lg ${displayVal >= 0 ? 'text-gray-900' : 'text-red-500'}">${displayVal.toLocaleString('de-DE', {minimumFractionDigits:2})} €</span>
+                    <span class="font-bold text-lg ${currentItemValue >= 0 ? 'text-gray-900' : 'text-red-500'}">${currentItemValue.toLocaleString('de-DE', {minimumFractionDigits:2})} €</span>
                 </div>`;
             });
 
-            document.getElementById('main-balance').innerText = totalDisplayValue.toLocaleString('de-DE', {style:'currency', currency:'EUR'});
-            document.getElementById('main-balance').className = `text-4xl font-black tracking-tighter my-1 ${totalDisplayValue >=0 ? 'text-green-600' : 'text-red-600'}`;
-
+            document.getElementById('main-balance').innerText = totalValue.toLocaleString('de-DE', {style:'currency', currency:'EUR'});
+            document.getElementById('main-balance').className = `text-4xl font-black tracking-tighter my-1 ${totalValue >=0 ? 'text-green-600' : 'text-red-600'}`;
             renderChart(selMonth);
             calculateForecast(selMonth);
             localStorage.setItem('ifinance_v4', JSON.stringify(transactions));
@@ -184,36 +166,24 @@
         }
 
         function save() {
-            let n = document.getElementById('in-name').value;
-            let v = parseFloat(document.getElementById('in-val').value);
-            let y = parseFloat(document.getElementById('in-yield').value) || 0;
-            let rep = document.getElementById('in-repeat').checked;
-            let m = parseInt(monthSelect.value);
-
+            let n = document.getElementById('in-name').value, v = parseFloat(document.getElementById('in-val').value), y = parseFloat(document.getElementById('in-yield').value) || 0, rep = document.getElementById('in-repeat').checked, m = parseInt(monthSelect.value);
             if(n && !isNaN(v)) {
                 let val = (entryMode === 'm' ? -v : v);
-                if(editingId !== null) {
-                    transactions = transactions.filter(t => (t.id && t.id != editingId) || (!t.id && transactions.indexOf(t) != editingId));
-                }
-
+                if(editingId !== null) transactions = transactions.filter(t => (t.id && t.id != editingId) || (!t.id && transactions.indexOf(t) != editingId));
                 const newId = Date.now();
                 if(currentTab !== 'wealth' && rep) {
-                    for(let i = m; i < 12; i++) {
-                        transactions.push({ id: newId + i, name: n, val, tab: currentTab, month: i, repeat: true });
-                    }
+                    for(let i = m; i < 12; i++) transactions.push({ id: newId + i, name: n, val, tab: currentTab, month: i, repeat: true });
                 } else {
                     transactions.push({ id: newId, name: n, val, tab: currentTab, month: m, repeat: false, yield: (currentTab === 'wealth' ? y : 0) });
                 }
-                closeModal();
-                updateUI();
+                closeModal(); updateUI();
             }
         }
 
         function handleDelete() {
             if(confirm('Löschen?')) {
                 transactions = transactions.filter(t => (t.id && t.id != editingId) || (!t.id && transactions.indexOf(t) != editingId));
-                closeModal();
-                updateUI();
+                closeModal(); updateUI();
             }
         }
 
@@ -222,11 +192,7 @@
             document.getElementById('repeat-container').style.display = currentTab === 'wealth' ? 'none' : 'flex';
             document.getElementById('yield-container').style.display = currentTab === 'wealth' ? 'block' : 'none';
             if(!isEdit) {
-                editingId = null;
-                document.getElementById('in-name').value = '';
-                document.getElementById('in-val').value = '';
-                document.getElementById('in-yield').value = '';
-                document.getElementById('btn-delete').classList.add('hidden');
+                editingId = null; document.getElementById('in-name').value = ''; document.getElementById('in-val').value = ''; document.getElementById('in-yield').value = ''; document.getElementById('btn-delete').classList.add('hidden');
             }
         }
 
@@ -239,39 +205,24 @@
             if(currentTab === 'wealth') {
                 let items = transactions.filter(t => t.tab === 'wealth');
                 labels = items.map(i => i.name);
-                dataArr = items.map(i => {
-                    const y = i.yield || 0;
-                    return Math.abs(i.val + (i.val * y / 100));
-                });
+                dataArr = items.map(i => Math.abs(i.val + (i.val * (i.yield || 0) / 100)));
             } else {
                 let items = transactions.filter(t => t.tab === currentTab && t.month === selMonth);
-                let inc = items.filter(i => i.val > 0).reduce((s,i) => s+i.val, 0);
-                let exp = Math.abs(items.filter(i => i.val < 0).reduce((s,i) => s+i.val, 0));
-                labels = ['Plus', 'Minus'];
-                dataArr = [inc, exp];
+                let inc = items.filter(i => i.val > 0).reduce((s,i) => s+i.val, 0), exp = Math.abs(items.filter(i => i.val < 0).reduce((s,i) => s+i.val, 0));
+                labels = ['Plus', 'Minus']; dataArr = [inc, exp];
             }
-            chart = new Chart(ctx, {
-                type: 'doughnut',
-                data: { labels, datasets: [{ data: dataArr, backgroundColor: ['#0071E3', '#34C759', '#FF9500', '#AF52DE', '#FF3B30'], borderWidth: 0, borderRadius: 10 }] },
-                options: { cutout: '80%', plugins: { legend: { display: false } } }
-            });
+            chart = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data: dataArr, backgroundColor: ['#0071E3', '#34C759', '#FF9500', '#AF52DE', '#FF3B30'], borderWidth: 0, borderRadius: 10 }] }, options: { cutout: '80%', plugins: { legend: { display: false } } } });
         }
 
         function calculateForecast(selMonth) {
-            let totalNow = transactions.filter(t => t.tab === 'wealth').reduce((s,t) => {
-                const y = t.yield || 0;
-                return s + (t.val + (t.val * y / 100));
-            }, 0);
+            let totalNow = transactions.filter(t => t.tab === 'wealth').reduce((s,t) => s + (t.val + (t.val * (t.yield || 0) / 100)), 0);
             let future = 0;
-            for(let i = selMonth; i < 12; i++) {
-                future += transactions.filter(t => (t.tab === 'private' || t.tab === 'rent') && t.month === i).reduce((s,t) => s+t.val, 0);
-            }
+            for(let i = selMonth; i < 12; i++) future += transactions.filter(t => (t.tab === 'private' || t.tab === 'rent') && t.month === i).reduce((s,t) => s+t.val, 0);
             document.getElementById('forecast-value').innerText = (totalNow + future).toLocaleString('de-DE', {style:'currency', currency:'EUR'});
             let inc = transactions.filter(t => (t.tab === 'private' || t.tab === 'rent') && t.month === selMonth && t.val > 0).reduce((s,t) => s+t.val, 0);
             let exp = Math.abs(transactions.filter(t => (t.tab === 'private' || t.tab === 'rent') && t.month === selMonth && t.val < 0).reduce((s,t) => s+t.val, 0));
             document.getElementById('savings-rate').innerText = inc > 0 ? ((inc - exp) / inc * 100).toFixed(0) + "%" : "0%";
         }
-
         updateUI();
     </script>
 </body>
